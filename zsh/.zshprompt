@@ -1,0 +1,118 @@
+function precmd {
+
+    ###
+    # Get APM info.
+
+    if which acpi > /dev/null; then
+	PR_APM_RESULT=`acpi`
+    elif which apm > /dev/null; then
+	PR_APM_RESULT=`apm`
+    fi
+
+}
+
+
+setopt extended_glob
+preexec () {
+    if [[ "$TERM" == screen* ]]; then
+	local CMD=${1[(wr)^(<*|*=*|sudo|exec|-*)]}
+	echo -n "\ek$CMD\e\\"
+    fi
+
+    ###
+    # See if $DISPLAY needs to be fixed.
+    if [[ "$STY" != "" && "$DISPLAY" != "$(<~/.display)" ]]; then
+	DISPLAY=$(<~/.display)
+    fi
+}
+
+
+setprompt () {
+    ###
+    # Need this so the prompt will work.
+
+    setopt prompt_subst
+
+
+    ###
+    # See if we can use colors.
+
+    autoload colors zsh/terminfo
+    if [[ "$terminfo[colors]" -ge 8 ]]; then
+	colors
+    fi
+    for color in RED GREEN YELLOW BLUE MAGENTA CYAN WHITE; do
+	eval PR_$color='%{$terminfo[bold]$fg[${(L)color}]%}'
+	eval PR_LIGHT_$color='%{$fg[${(L)color}]%}'
+	(( count = $count + 1 ))
+    done
+    PR_NO_COLOUR="%{$terminfo[sgr0]%}"
+
+   
+    ###
+    # Decide if we need to set titlebar text.
+    
+    case $TERM in
+	xterm*|mlterm)
+	    PR_TITLEBAR=$'%{\e]0;%(0#.-=*[ROOT]*=- | .)%n@%m:%~ | ${COLUMNS}x${LINES} | %y\a%}'
+	    ;;
+	screen*)
+	    PR_TITLEBAR=$'%{\e_screen \005 (\005t) | %(0#.-=[ROOT]=- | .)%n@%m:%~ | ${COLUMNS}x${LINES} | %y\e\\%}'
+	    ;;
+	*)
+	    PR_TITLEBAR=''
+	    ;;
+    esac
+    
+    
+    ###
+    # Decide whether to set a screen title
+    if [[ "$TERM" == screen* ]]; then
+	PR_STITLE=$'%{\ekzsh\e\\%}'
+    else
+	PR_STITLE=''
+    fi
+    
+    
+    ###
+    # APM detection
+    case "$OSTYPE" in
+	linux*)
+	    if which acpi > /dev/null; then
+		PR_APM='$PR_RED${${PR_APM_RESULT[(f)1]}[(w)-4]}%%$PR_LIGHT_BLUE:'
+	    elif which apm > /dev/null; then
+		PR_APM='$PR_RED${PR_APM_RESULT[(w)5,(w)6]/\% /%%}$PR_LIGHT_BLUE:'
+	    else
+		PR_APM=''
+	    fi
+	    ;;
+	*)
+	    PR_APM=''
+	    ;;
+    esac
+    
+	SPACE=" "
+    
+    ###
+    # Finally, the prompt.
+
+    PROMPT='$PR_SET_CHARSET$PR_STITLE${(e)PR_TITLEBAR}\
+$PR_BLUE(\
+%(?..$PR_LIGHT_RED%?$PR_BLUE:)\
+${(e)PR_APM}\
+$PR_YELLOW%D{%Y-%m-%d}$PR_BLUE$SPACE\
+$PR_YELLOW%D{%H:%M}\
+$PR_LIGHT_BLUE:%(0#.$PR_RED.$PR_WHITE)%#$PR_BLUE)\
+$PR_BLUE($PR_MAGENTA%$PR_PWDLEN<...<%~%<<$PR_BLUE)$PR_NO_COLOUR '
+
+
+	RPROMPT=' $PR_BLUE(\
+$PR_GREEN%(0#.%SROOT%s.%n)$PR_GREEN@%m:%l\
+$PR_BLUE)\
+$PR_NO_COLOUR'
+
+
+
+}
+
+setprompt
