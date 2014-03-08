@@ -1,0 +1,31 @@
+[user]
+	name = Jan Seidl
+	email = jseidl@wroot.org
+
+[core]
+    editor = vim
+    excludesfile = ~/.gitignore
+    autocrlf = input
+
+[branch]
+    autosetupmerge = true
+
+[color]
+    ui = auto
+
+[alias]
+    remotes = remote -v
+    branches = branch -a
+    tags = tag -l
+    root = rev-parse --show-toplevel
+    st = status
+    ca = commit -a
+    ci = commit
+    co = checkout
+    fo = fetch origin
+    fu = fetch upstream
+    po = push origin
+    pu = push upstream
+
+[push]
+    default = simple
